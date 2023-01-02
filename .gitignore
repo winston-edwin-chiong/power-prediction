@@ -79,4 +79,4 @@ out/
 .idea_modules/
 
 # pycache
-/pycache/*
+__pycache__/
