@@ -22,7 +22,9 @@ class SortDropCast(BaseEstimator, TransformerMixin):
         X["cumEnergy_Wh"] = X["cumEnergy_Wh"].astype(float)
         X["peakPower_W"] = X["peakPower_W"].astype(float)
         X["userId"] = X["userId"].astype(str)
-        X = X[X["connectTime"] >= now]
+
+        # changed for the purpose of research--need all records
+        # X = X[X["connectTime"] >= now] 
         return X
 
 
