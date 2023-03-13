@@ -83,3 +83,6 @@ __pycache__/
 
 # .env
 .env
+
+# data, since .csv files can be large
+data/
