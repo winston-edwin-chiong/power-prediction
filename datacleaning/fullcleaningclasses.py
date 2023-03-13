@@ -22,20 +22,36 @@ class SortDropCast(BaseEstimator, TransformerMixin):
 class HelperFeatureCreation(BaseEstimator, TransformerMixin):
     """
     This pipeline step will drop any records that contain 0 for 
-    "peakPower_W" or "cumEnergy_Wh". Two additional columns will be created:
-    "reqChargeTime" and "finishChargeTime".
+    "peakPower_W" or "cumEnergy_Wh". Four additional columns will be created:
+    "reqChargeTime", "finishChargeTime", "Overstay", and "Overstay_h". 
+    Any records with calculated charging durations greater than a day will be dropped. 
+    Raw data at this staged will be saved.
     """
     def fit(self, X, y=None):
         return self
 
     @staticmethod
     def transform(X) -> pd.DataFrame:
-        X = X.loc[(X["peakPower_W"] != 0) & (X["cumEnergy_Wh"] != 0)]
-        X = X.assign(reqChargeTime_h=(X["cumEnergy_Wh"] / X["peakPower_W"]))
-        X = X.assign(connectTime=(pd.to_datetime(X["connectTime"])))
-        X = X.assign(
-            finishChargeTime=(X["connectTime"] + pd.to_timedelta(X['reqChargeTime_h'], unit='hours').round("s"))
-        )
+        X = X.loc[(X["peakPower_W"] != 0) & (X["cumEnergy_Wh"] != 0)].copy(deep=True)
+
+        X["reqChargeTime_h"] = X["cumEnergy_Wh"] / X["peakPower_W"]
+
+        X["connectTime"] = pd.to_datetime(X["connectTime"])
+        X["startChargeTime"] = pd.to_datetime(X["startChargeTime"])
+        X["Deadline"] = pd.to_datetime(X["Deadline"])
+        X["lastUpdate"] = (pd.to_datetime(X["lastUpdate"]))
+
+        X["finishChargeTime"] = (X["startChargeTime"] + pd.to_timedelta(X['reqChargeTime_h'], unit='hours').round("s"))
+        
+        X = X.loc[X["reqChargeTime_h"] < 24] # filter out bad rows (this occurs when there is a very low peak power and high energy delivered)
+
+        X['temp_0'] = pd.Timedelta(days=0,seconds=0)
+        X['Overstay'] = X["lastUpdate"] - X['Deadline']
+        X["Overstay"] = X[["Overstay", "temp_0"]].max(axis=1)
+        X['Overstay_h'] = X['Overstay'].dt.seconds / 3600
+
+        X.drop(columns = ['temp_0'], inplace=True)
+
         return X 
 
 
@@ -52,15 +68,15 @@ class CreateSessionTimeSeries(BaseEstimator, TransformerMixin):
         self.rows = []
         X.apply(self.__create_ts, axis=1)
         X = pd.concat(self.rows, axis=0).sort_index()
-        X = X.resample("5min").sum()
+        X = X.resample("5MIN").sum() # sum records that occur at the same time
         return X
     
     def __create_ts(self, session):
         """
-        This helper function takes in a session, with a "connectTime", "finishChargeTime", and 
+        This helper function takes in a session, with a "startChargeTime", "finishChargeTime", and 
         a "peakPower_W" column. Function will return a time series at 5-min granularity. 
         """
-        date_range = pd.date_range(start=session["connectTime"], end=session["finishChargeTime"], freq="5min")
+        date_range = pd.date_range(start=session["startChargeTime"], end=session["finishChargeTime"], freq="5min")
         temp_df = pd.DataFrame(index=date_range)
         temp_df["avg_power_demand_W"] = session["peakPower_W"]  # rename
         self.rows.append(temp_df)  

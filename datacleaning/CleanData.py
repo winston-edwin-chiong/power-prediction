@@ -1,6 +1,6 @@
 from sklearn.pipeline import Pipeline
 import pandas as pd
-import datacleaning.fullcleaningclasses as pc
+import datacleaning.fullcleaningclasses as fcc
 import datacleaning.sessionlevelcleaningclasses as sc
 
 class CleanData:
@@ -17,11 +17,11 @@ class CleanData:
         # full time series pipeline
         full_ts_pipeline = Pipeline(
             [
-                ("sort_drop_cast", pc.SortDropCast()),
-                ("create_helpers", pc.HelperFeatureCreation()),
-                ("create_session_TS", pc.CreateSessionTimeSeries()),
-                ("create_features", pc.FeatureCreation()),
-                ("save_to_csv", pc.SaveToCsv()),
+                ("sort_drop_cast", fcc.SortDropCast()),
+                ("create_helpers", fcc.HelperFeatureCreation()),
+                ("create_session_TS", fcc.CreateSessionTimeSeries()),
+                ("create_features", fcc.FeatureCreation()),
+                ("save_to_csv", fcc.SaveToCsv()),
             ]
         )
         cleaned_df = full_ts_pipeline.fit_transform(raw_data)
@@ -32,7 +32,8 @@ class CleanData:
                 ("sort_drop_cast", sc.SortDropCast()),
                 ("create_helpers", sc.HelperFeatureCreation()),
                 ("nested_ts", sc.CreateNestedSessionTimeSeries()),
-                ("save_csv", sc.SaveCSV()),
+                ("resample", sc.ResampleTimeSeries()),
+                ("save_csv", sc.SaveToCsv())
             ]
         )
         cleaned_df["session"] = session_lvl_pipeline.fit_transform(raw_data)
