@@ -86,3 +86,6 @@ __pycache__/
 
 # data, since .csv files can be large
 data/
+
+# virtual environments
+venv/
