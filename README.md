@@ -1,2 +1,2 @@
 # power-prediction
-Peak power prediction / power prediction of UC Berkeley's slrpEV charging stations. 
+Demand forecasting of UC Berkeley's [slrpEV](https://sites.google.com/berkeley.edu/slrpev/) charging stations. 
